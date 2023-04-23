@@ -14,7 +14,7 @@ class UrlOpener(object):
             self.opener.addheaders = [header_tuples]
 
     def openUrl(self, url):
-        return self.opener.open(url).read()
+        return self.opener.open(url, timeout=30).read()
 
 
 class WPContentParser(object):
@@ -26,9 +26,13 @@ class WPContentParser(object):
     def _parse_links(self, html_file, base_url, file_pointer, level):
         page_data = BeautifulSoup(html_file, features="html.parser")
         href = ''
-        for link in page_data.findAll('a'):
+        for link in page_data.select('td > a'):
             try:
                 href = link.get('href')
+                if href is None:
+                    continue
+
+                print("Checking: " + href)
                 if self._is_valid(href):
                     if self._is_file(href):
                         self._save_link(base_url, href, file_pointer)
@@ -40,7 +44,8 @@ class WPContentParser(object):
                         #     page_url = base_url + href
                         page_url = base_url + href
                         self._parse_links(self.fetch.openUrl(page_url), page_url, file_pointer, level + 1)
-            except:
+            except Exception as e:
+                print(e)
                 file_pointer.write('\n--> Error href' + (base_url + href) + '\n')
 
     def _save_link(self, base_url, href, file_pointer):
@@ -66,7 +71,7 @@ class WPContentParser(object):
 
     def _is_file(self, link):
         # TODO: Move this to a settings file.
-        for ext in ['jpg', 'png', 'jpeg', 'gif', 'bmp']:
+        for ext in ['jpg', 'png', 'tif', 'jpeg', 'webp', 'gif', 'bmp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'mp4', 'mp3', 'zip', 'rar', 'mov']:
             if ext in link.lower():
                 return True
 
